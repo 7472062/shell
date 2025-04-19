@@ -5,7 +5,7 @@ TARGET = shell
 
 SRCDIR = src
 INCDIR = include
-SRCS = $(SRCDIR)/main.c $(SRCDIR)/init_pwd.c $(SRCDIR)/pwd.c $(SRCDIR)/exec_cmd.c
+SRCS = $(wildcard $(SRCDIR)/*.c)
 OBJS = $(SRCS:.c=.o)
 
 all: $(TARGET)
