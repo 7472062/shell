@@ -1,6 +1,7 @@
 #ifndef EXEC_CMD_H
 #define EXEC_CMD_H
 
-void execute_command(const char *command);
+int execute_command(const char *command);
+void process_command(const char *input);
 
 #endif

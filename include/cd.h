@@ -1,6 +1,6 @@
 #ifndef CD_H
 #define CD_H
 
-void cd(const char *path);
+int cd(const char *path);
 
 #endif

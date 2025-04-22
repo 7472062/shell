@@ -3,7 +3,6 @@
 #include "pwd.h"
 #include "exec_cmd.h"
 #include "print_prompt.h"
-#include "cd.h"
 
 int main(void) {
     char command[256]; // 명령어를 저장할 배열
@@ -14,19 +13,12 @@ int main(void) {
         print_prompt(); // 프롬프트 출력
 
         fgets(command, sizeof(command), stdin); // 명령어 입력
-
         command[strcspn(command, "\n")] = '\0'; // 개행 문자 제거
 
-        if (strcmp(command, "exit") == 0) { // exit 처리
-            fflush(stdout); // 출력 버퍼 비우기
-            break;
-        } else if (strcmp(command, "pwd") == 0) { // pwd 처리
-            pwd();
-        } else if (strncmp(command, "cd", 2) == 0) { // cd 처리
-            cd(command + 3); // "cd " 이후의 경로 전달
-        } else {
-            execute_command(command); // 외부 명령어 실행
+        if (strcmp(command, "exit") == 0) { // exit 명령어 처리
+            break; // 루프 종료
         }
+        process_command(command); // 명령어 처리
     }
     return 0;
 }
