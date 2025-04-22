@@ -23,13 +23,13 @@ void execute_command(const char *command) {
     if (pid == 0) { // 자식 프로세스
         execvp(args[0], args); // 명령어 실행
         perror("exec failed"); // exec 실패 시 오류 출력
-        exit(1); // 실패 시 종료
+        exit(1); // 자식 프로세스 종료
     } else if (pid > 0) { // 부모 프로세스
-        int status; // 자식 프로세스 종료 상태 저장
+        int status; // 자식 프로세스 종료 상태를 저장할 변수
         waitpid(pid, &status, 0); // 자식 프로세스 종료 대기
         if (WIFEXITED(status)) { // 자식 프로세스가 정상 종료되었는지 확인
             int exit_code = WEXITSTATUS(status);
-            if (exit_code != 0) { // 종료 코드가 0이 아닌 경우에만 출력
+            if (exit_code != 0) { // 종료 코드가 0이 아닌 경우
                 printf("Command failed with exit code: %d\n", exit_code);
             }
         } 

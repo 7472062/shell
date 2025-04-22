@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include "init_pwd.h"
 #include "pwd.h"
 #include "exec_cmd.h"
 #include "print_prompt.h"
@@ -8,7 +7,7 @@
 int main(void) {
     char command[256]; // 명령어를 저장할 배열
 
-    initialize_pwd(); // PWD 초기화
+    initialize_cwd(); // 현재 디렉토리를 사용자의 홈 디렉토리로 초기화
 
     while (1) {
         print_prompt(); // 프롬프트 출력
