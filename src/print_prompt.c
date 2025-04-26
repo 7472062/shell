@@ -32,5 +32,5 @@ void print_prompt(void) {
 
     // 프롬프트 출력
     printf("[%s@%s:%s]%c ", user, hostname, directory_name, strcmp(user, "root") ? '$' : '#');
-    fflush(stdout); // 출력 버퍼 비우기
+    fflush(stdout); 
 }

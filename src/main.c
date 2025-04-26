@@ -17,6 +17,8 @@ int main(void) {
 
         if (strcmp(command, "exit") == 0) { // exit 명령어 처리
             break; // 루프 종료
+        } else if (strcmp(command, "") == 0) {
+            continue;
         }
         process_command(command); // 명령어 처리
     }

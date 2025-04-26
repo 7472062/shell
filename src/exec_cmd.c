@@ -12,33 +12,72 @@ int execute_command(const char *command) { // 명령어 실행 함수
     char *args[256]; // 명령어와 옵션을 저장할 배열
     char *cmd_copy = strdup(command); // 입력 문자열 복사
     cmd_copy[strcspn(cmd_copy, "\n")] = '\0'; // 개행 문자 제거
-    char *token = strtok(cmd_copy, " "); // 공백 기준으로 첫 번째 토큰 추출
-    int i = 0, exit_code = 0;
+    int i = 0, exit_code = -1;
 
+    // 백그라운드 실행 여부 확인
+    int is_background = 0;
+    if (cmd_copy[strlen(cmd_copy) - 1] == '&') { // 명령어가 &로 끝나는 경우
+        is_background = 1;
+        cmd_copy[strlen(cmd_copy) - 1] = '\0'; // & 제거
+    }
+
+    char *token = strtok(cmd_copy, " "); // 공백 기준으로 첫 번째 토큰 추출
+
+    // 명령어와 옵션 분리 저장
     while (token != NULL) {
-        args[i++] = token; // 명령어와 옵션 저장
+        args[i++] = token; 
         token = strtok(NULL, " "); // 다음 토큰 추출
     }
     args[i] = NULL; // 마지막 인자는 NULL로 설정
 
-    // 쉘 내부 명령어 처리
-    if (strcmp(args[0], "pwd") == 0) { // pwd 처리
-        return pwd();
-    } else if (strcmp(args[0], "cd") == 0) { // cd 처리
-        return cd(args[1]); 
+    pid_t pid = 0;
+
+    if (is_background) {
+        pid = fork(); // 자식 프로세스 생성
+        if (pid > 0) { // 부모 프로세스인 경우
+            fflush(stdout);
+            printf("Background process PID: %d\n", pid); // 백그라운드 프로세스 PID 출력
+            goto SKIP_CHILD;
+        } else if (pid < 0) { // fork 실패
+            perror("fork failed");
+            free(cmd_copy);
+            return exit_code;
+        }
     }
 
-    pid_t pid = fork(); // 자식 프로세스 생성
+    // 쉘 내부 명령어 처리
+    if (strcmp(args[0], "pwd") == 0) { // pwd 처리
+        exit_code = pwd(); // pwd 명령어 실행
+        free(cmd_copy); 
+        if (is_background) {
+            exit(exit_code);
+        } else {
+            return exit_code;
+        }
+    } else if (strcmp(args[0], "cd") == 0) { // cd 처리
+        exit_code = cd(args[1]);
+        free(cmd_copy); 
+        if (is_background) {
+            exit(exit_code);
+        } else {
+            return exit_code;
+        }
+    }
+
+    if (!is_background) {
+        pid = fork(); // 자식 프로세스 생성
+    }
 
     if (pid == 0) { // 자식 프로세스
-        execvp(args[0], args); // 명령어 실행
-        perror("exec failed"); // exec 실패 시 오류 출력
-        exit(1); // 자식 프로세스 종료
+        execvp(args[0], args);
+        perror("exec failed");
+        free(cmd_copy); 
+        exit(1);
     } else if (pid > 0) { // 부모 프로세스
         int status; // 자식 프로세스 종료 상태를 저장할 변수
         waitpid(pid, &status, 0); // 자식 프로세스 종료 대기
         if (WIFEXITED(status)) { // 자식 프로세스가 정상 종료되었는지 확인
-            exit_code = WEXITSTATUS(status);
+            exit_code = WEXITSTATUS(status); // 종료 코드 저장
             if (exit_code != 0) { // 종료 코드가 0이 아닌 경우
                 printf("Command failed with exit code: %d\n", exit_code);
             }
@@ -47,7 +86,8 @@ int execute_command(const char *command) { // 명령어 실행 함수
         perror("fork failed");
     }
     
-    free(cmd_copy); // 복사한 문자열 메모리 해제
+    SKIP_CHILD:
+    free(cmd_copy);
     return exit_code; // 종료 코드 반환
 }
 
@@ -77,9 +117,12 @@ void process_command(const char *input) { // 입력문 처리 함수
                 cmd_copy[i] = '\0';
                 commands[cmd_index++] = start;
                 i += 2;
-            } else if (cmd_copy[i] == '&') { // & 처리
-                operators[op_index++] = "&";
-                cmd_copy[i] = '\0'; 
+            } else if (cmd_copy[i] == '&' && cmd_copy[i + 1] == ';') {
+                operators[op_index++] = ";";
+                cmd_copy[i + 1] = '\0';
+                commands[cmd_index++] = start;
+                i += 2;
+            } else if (cmd_copy[i] == '&') {
                 commands[cmd_index++] = start;
                 i++;
             } else { // ; 또는 |
@@ -107,18 +150,12 @@ void process_command(const char *input) { // 입력문 처리 함수
     for (int i = 0; operators[i] != NULL; i++) {
         if (strcmp(operators[i], ";") == 0) {
             exit_code[i + 1] = execute_command(commands[i + 1]); // 다음 명령어 실행
-        } else if (strcmp(operators[i], "||") == 0) {
-            if (exit_code[i] != 0) { // 이전 명령어 실패 시
-                exit_code[i + 1] = execute_command(commands[i + 1]);
-            }
-        } else if (strcmp(operators[i], "&&") == 0) {
-            if (exit_code[i] == 0) { // 이전 명령어 성공 시
-                exit_code[i + 1] = execute_command(commands[i + 1]);
-            }
+        } else if (strcmp(operators[i], "||") == 0 && exit_code[i] != 0) { // 이전 명령어 실패시
+            exit_code[i + 1] = execute_command(commands[i + 1]);
+        } else if (strcmp(operators[i], "&&") == 0 && exit_code[i] == 0) { // 이전 명령어 성공시
+            exit_code[i + 1] = execute_command(commands[i + 1]);  
         } else if (strcmp(operators[i], "|") == 0) {
             // 파이프 처리 (추가 구현 필요)
-        } else if (strcmp(operators[i], "&") == 0) {
-            // 백그라운드 실행 처리 (추가 구현 필요)
         }
     }
     free(cmd_copy); // 복사한 문자열 메모리 해제
