@@ -3,10 +3,12 @@
 #include "pwd.h"
 #include "exec_cmd.h"
 #include "print_prompt.h"
+#include "handle_sig.h"
 
 int main(void) {
     char command[256]; // 명령어를 저장할 배열
 
+    setup_signal_handler(); // SIGCHLD 핸들러 설정
     initialize_cwd(); // 현재 디렉토리를 사용자의 홈 디렉토리로 초기화
 
     while (1) {

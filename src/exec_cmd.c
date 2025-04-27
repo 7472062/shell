@@ -7,6 +7,7 @@
 #include "exec_cmd.h"
 #include "pwd.h"
 #include "cd.h"
+#include "handle_sig.h"
 
 int execute_command(const char *command) { // 명령어 실행 함수
     char *args[256]; // 명령어와 옵션을 저장할 배열
@@ -21,6 +22,7 @@ int execute_command(const char *command) { // 명령어 실행 함수
         cmd_copy[strlen(cmd_copy) - 1] = '\0'; // & 제거
     }
 
+    
     char *token = strtok(cmd_copy, " "); // 공백 기준으로 첫 번째 토큰 추출
 
     // 명령어와 옵션 분리 저장
@@ -36,7 +38,8 @@ int execute_command(const char *command) { // 명령어 실행 함수
         pid = fork(); // 자식 프로세스 생성
         if (pid > 0) { // 부모 프로세스인 경우
             fflush(stdout);
-            printf("Background process PID: %d\n", pid); // 백그라운드 프로세스 PID 출력
+            printf("start in background %d: %s\n", pid, args[0]); // 백그라운드 프로세스 PID 출력
+            add_background_pid(pid);
             goto SKIP_CHILD;
         } else if (pid < 0) { // fork 실패
             perror("fork failed");
