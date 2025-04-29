@@ -8,25 +8,25 @@
 #define MAX_BACKGROUND_PROCESSES 256
 
 // 백그라운드 프로세스 리스트
-pid_t background_pids[MAX_BACKGROUND_PROCESSES];
-int background_count = 0;
+pid_t BACKGROUND_PIDS[MAX_BACKGROUND_PROCESSES];
+int BACKGROUND_COUNT = 0;
 
 // 백그라운드 PID 추가 함수
 void add_background_pid(pid_t pid) {
-    if (background_count < MAX_BACKGROUND_PROCESSES) {
-        background_pids[background_count++] = pid;
+    if (BACKGROUND_COUNT < MAX_BACKGROUND_PROCESSES) {
+        BACKGROUND_PIDS[BACKGROUND_COUNT++] = pid;
     }
 }
 
 // 백그라운드 PID 제거 함수
 void remove_background_pid(pid_t pid) {
-    for (int i = 0; i < background_count; i++) {
-        if (background_pids[i] == pid) {
+    for (int i = 0; i < BACKGROUND_COUNT; i++) {
+        if (BACKGROUND_PIDS[i] == pid) {
             // PID를 리스트에서 제거
-            for (int j = i; j < background_count - 1; j++) {
-                background_pids[j] = background_pids[j + 1];
+            for (int j = i; j < BACKGROUND_COUNT - 1; j++) {
+                BACKGROUND_PIDS[j] = BACKGROUND_PIDS[j + 1];
             }
-            background_count--;
+            BACKGROUND_COUNT--;
             break;
         }
     }
@@ -38,14 +38,12 @@ void sigchld_handler(int signo) {
     pid_t pid;
     int status;
 
-    //종료된 자식 프로세스 처리
-    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-        for (int i = 0; i < background_count; i++) {
-            if (background_pids[i] == pid) {
-                printf("done %d\n", pid);
-                remove_background_pid(pid); // 리스트에서 제거
-                break;
-            }
+    // 백그라운드 프로세스 중 종료된 자식 프로세스 처리
+    for (int i = 0; i < BACKGROUND_COUNT; i++) {
+        pid = waitpid(BACKGROUND_PIDS[i], &status, WNOHANG);
+        if (pid > 0) { // 종료된 프로세스가 있는 경우
+            printf("- done %d\n", pid);
+            remove_background_pid(pid); // 리스트에서 제거
         }
     }
 }
